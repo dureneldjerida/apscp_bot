@@ -1,0 +1,191 @@
+import discord
+import random
+import time
+from discord.ext import commands
+from dict import b
+from discord import DMChannel
+
+client = commands.Bot(command_prefix = ".")
+
+#Say When Ready
+@client.event
+async def on_ready():
+    print('I am ready')
+    bot_channel = client.get_channel(774887275955093575)
+    await bot_channel.send("I Am Ready")
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="everyone all the time"))
+
+#Work Embed
+myEmbed = discord.Embed(title="Bob is currently at work!", color=0xf7d5f4)
+myEmbed.add_field(name="He will respond ASAP or during his lunch break", value= "If you want him to see something please ping him, if you don't want to recieve this message anymore please put a '.' in front of his name, thank you!", inline=False)
+myEmbed.add_field(name= "Here is a link to his schedule:", value= "https://bit.ly/3bRtJq2")
+myEmbed.add_field(name= "See ya soon!", value= "<a:wave:812383129608126484>")
+
+#Busy Embed
+busyEmbed = discord.Embed(title = "Bob is busy")
+busyEmbed.add_field(name= "<:poyo:809155758075281458>", value= "He'll probably get back to you a little later if you really want him to see something dm him")
+busyEmbed.set_footer(text= "Thank you for unerstanding")
+
+#Dictionary of Emotes
+random_emote = ["<a:yay:794447927820419082>", 
+"<:nabeelsmile:772290438345261116>", 
+"<:PogYou:721074041053511800>", 
+"<a:KirboExcite:809592083701694515>", 
+"<:torchicy:780828666971029534>", 
+"<:poyo:809155758075281458>", 
+"<:oig:810974970440187904>", 
+"<a:torchic:781329784621105172>", 
+"<:rightkiss:797006910045814804>"]
+
+
+ani_working = ["is bob working"]
+
+ani_work = False
+busy = False
+
+#Defines who gets what randomized messages
+user_msg_person1 = [ "You look nice!", "I like your shoes!", "You're doing great!", "Have a nice day!"
+]
+
+user_msg_person2 = [ "Your hair is looking good today", "Your eyes look pretty", "I like your hair", "I love that color on your nails!"
+]
+
+user_msg_person3 = [ "Do you like rasins? How about a Date?", "Are you French? Because Eiffel for you", "I'm learning about important dates in history. Want to be one of them?", "Life without you is like a broken pencil... pointless"
+]
+
+user_msg_person4 = [ 
+]
+
+user_msg_person5 = [
+]
+
+on = False
+
+def person(user_id):
+    if user_id not in b:
+        return
+    return b.get(user_id)
+
+#DMs specific user a message
+@client.command(pass_context=True)
+async def dm(ctx, arg1, arg2):
+    if arg1 in b: 
+        user = await client.fetch_user(person(arg1.lower()))
+        await DMChannel.send(user, arg2)
+        await ctx.send(f"```Messgae Sent!\n\nTo: {arg1}\nMsg: {arg2}```")
+    else:
+        await ctx.send("```User is not found!\n\nPlease add them to the dictionary with the 'addme' command!```")
+        return
+
+#DMs user repeatedly the same message
+@client.command(pass_context=True)
+async def dmrep(ctx, arg1, arg2):
+    global on
+    on = True
+    user = await client.fetch_user(person(arg1.lower()))
+    if arg1 in b:
+        await ctx.send(f"```Repeating message '{arg2}' to {arg1}```")
+        while on == True:
+            time.sleep(2)
+            await DMChannel.send(user, arg2)
+            if on == False:
+                break
+    else:
+        await ctx.send("```User is not found!\n\nPlease add them to the dictionary with the 'addme' command!```")
+        return
+
+#Breaks while loop in dmrep function
+@client.command(pass_context=True)
+async def stop(ctx):
+    global on
+    on = False
+    await ctx.send("```Stopped sending message```")
+
+#Adds a new user to the database
+@client.command(pass_context=True)
+async def addme(ctx, arg):
+    with open("/home/yousmellnice/sambashare/botscripts/dict.py", 'r+') as f: #r+ does the work of rw
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith('}'):
+                lines[i] = f"\"{arg}\":\"{ctx.author.id}\",\n}}" #insert new message for line
+        f.seek(0)
+        for line in lines:
+            f.write(line)
+
+def nice_message(userid):
+    #person1
+    if userid == 513591687948271636:
+        return random.choice(user_msg_person1)
+    #person2
+    if userid == 368557189327224842:
+        return random.choice(user_msg_person2)
+    #person3
+    if userid == 543189972203601932:
+        return random.choice(user_msg_person3)
+    #person4
+    if userid == 614188961216200752:
+        return random.choice(user_msg_person4)
+    #person5
+    if userid == 338375504405069824:
+        return random.choice(user_msg_person5)
+
+@client.command()
+async def ping(ctx):
+    await ctx.send(f"Pong {round(client.latency * 1000)}ms")
+
+@client.command()
+async def working(ctx):
+    global ani_work
+    if ani_work == True:
+        ani_work = False
+    else: 
+        ani_work = True
+        await client.get_channel(815449594296401941).send(embed=myEmbed)
+
+@client.command()
+async def busy(ctx):
+    global busy
+    if busy == True:
+        busy = False
+    else:
+        busy = True
+        await client.get_channel(815449594296401941).send(embed=busyEmbed)
+
+@client.command()
+async def compliment(ctx):
+    nice_message(ctx.author_id)
+
+@client.event
+async def on_message(message):
+    
+    if message.author == client.user or message.author.id == 773251057580507178:
+        return
+
+    #Statement Check
+    elif message.content.lower() in ani_working and ani_work == False:
+        await message.channel.send("no")
+    elif "bob busy" in message.content.lower() and busy == False:
+        await message.channel.send("no")
+
+    #If I am busy
+    elif busy == True:
+        if "bob" in message.content.lower():
+            await message.channel.send(embed=busyEmbed)
+        elif 614188961216200752 in message.raw_mentions:
+            await message.channel.send(embed=busyEmbed)
+
+    #If I am working
+    elif ani_work == True:
+        if "bob" in message.content.lower():
+            await message.channel.send(embed=myEmbed)
+        elif 614188961216200752 in message.raw_mentions:
+            await message.channel.send(embed=myEmbed)
+
+    #Happy Birthday Message
+    elif "happy birthday" in message.content.lower() and message.author.id == 614188961216200752:
+        await message.channel.send("happy birthday!! {}".format(" " + random.choice(random_emote)))
+
+    await client.process_commands(message)
+
+client.run("#token")
